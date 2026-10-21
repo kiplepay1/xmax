@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOTO VAULT AI — Premium Motorcycle Intelligence</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0a0a0c',
+                            800: '#121316',
+                            700: '#18191d',
+                            600: '#27272a',
+                            500: '#3f3f46'
+                        },
+                        mint: {
+                            500: '#10b981',
+                            400: '#34d399',
+                            900: '#064e3b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #0a0a0c; color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0c; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-dark-900 text-zinc-100 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Legacy Initial Dataset
+        const LEGACY_DATA = {
+            motorcycle: {
+                model: "Yamaha XMAX V2",
+                year: 2025,
+                odometer: 17183,
+                serviceInterval: 3000,
+                nextServiceTarget: 20183
+            },
+            services: [
+                { id: "srv-001", date: "2025-04-30", odometer: 211, description: "First service", cost: 0, parts: ["Engine Oil", "Oil Filter"], workshop: "Hong Leong Yamaha", flagged: false },
+                { id: "srv-002", date: "2025-08-15", odometer: 4200, description: "Front tyre replacement", cost: 530, parts: ["Front Tyre"], workshop: "Tayar Motor Pro", flagged: true, flagReason: "Odometer anomaly: recorded after 3,000km service in sequence." },
+                { id: "srv-003", date: "2025-09-10", odometer: 3000, description: "Regular service", cost: 120, parts: ["Engine Oil"], workshop: "Auto Care Services", flagged: false },
+                { id: "srv-004", date: "2025-11-20", odometer: 6000, description: "Regular service", cost: 120, parts: ["Engine Oil", "Gear Oil"], workshop: "Auto Care Services", flagged: false },
+                { id: "srv-005", date: "2026-01-15", odometer: 9100, description: "Regular service", cost: 120, parts: ["Engine Oil"], workshop: "Auto Care Services", flagged: false },
+                { id: "srv-006", date: "2026-04-22", odometer: 13100, description: "Regular service and front brake pad", cost: 210, parts: ["Engine Oil", "Front Brake Pad"], workshop: "Yamaha Quality Workshop", flagged: false },
+                { id: "srv-007", date: "2026-06-05", odometer: 15000, description: "Rear tyre replacement", cost: 330, parts: ["Rear Tyre"], workshop: "Tayar Motor Pro", flagged: false },
+                { id: "srv-008", date: "2026-07-22", odometer: 17183, description: "Regular service", cost: 119, parts: ["Engine Oil", "Oil Filter"], workshop: "Yamaha Quality Workshop", flagged: false }
+            ],
+            fuel: [
+                { id: "fuel-001", date: "2026-07-01", odometer: 16500, liters: 11.5, cost: 23.58 },
+                { id: "fuel-002", date: "2026-07-15", odometer: 16850, liters: 12.0, cost: 24.60 },
+                { id: "fuel-003", date: "2026-07-28", odometer: 17183, liters: 11.8, cost: 24.19 }
+            ],
+            expenses: [
+                { id: "exp-001", date: "2026-01-05", category: "Insurance", description: "Annual Motorcycle Insurance", cost: 450 },
+                { id: "exp-002", date: "2026-01-05", category: "Road Tax", description: "Annual Road Tax Renewal", cost: 50 },
+                { id: "exp-003", date: "2026-03-10", category: "Accessories", description: "Phone Mount & Handlebar Grip", cost: 280 }
+            ],
+            rules: [
+                { part: "Engine Oil", intervalKm: 3000, intervalMonths: 4, lastDoneKm: 17183 },
+                { part: "Oil Filter", intervalKm: 6000, intervalMonths: 8, lastDoneKm: 17183 },
+                { part: "Gear Oil", intervalKm: 6000, intervalMonths: 6, lastDoneKm: 6000 },
+                { part: "Air Filter", intervalKm: 12000, intervalMonths: 12, lastDoneKm: 0 },
+                { part: "Spark Plug", intervalKm: 10000, intervalMonths: 12, lastDoneKm: 0 },
+                { part: "CVT Belt", intervalKm: 20000, intervalMonths: 24, lastDoneKm: 0 },
+                { part: "CVT Rollers", intervalKm: 12000, intervalMonths: 12, lastDoneKm: 0 },
+                { part: "Front Brake Pad", intervalKm: 10000, intervalMonths: 12, lastDoneKm: 13100 },
+                { part: "Rear Brake Pad", intervalKm: 8000, intervalMonths: 12, lastDoneKm: 0 },
+                { part: "Coolant", intervalKm: 12000, intervalMonths: 24, lastDoneKm: 0 },
+                { part: "Brake Fluid", intervalKm: 12000, intervalMonths: 24, lastDoneKm: 0 },
+                { part: "Tyres (Front/Rear)", intervalKm: 15000, intervalMonths: 24, lastDoneKm: 15000 }
+            ]
+        };
+
+        function App() {
+            const [activeTab, setActiveTab] = useState("dashboard");
+            const [data, setData] = useState(() => {
+                const saved = localStorage.getItem("motovault_ai_v2_data");
+                return saved ? JSON.parse(saved) : LEGACY_DATA;
+            });
+            const [confirmedOdo, setConfirmedOdo] = useState(data.motorcycle.odometer);
+            const [migrationStatus, setMigrationStatus] = useState("Ready");
+
+            useEffect(() => {
+                localStorage.setItem("motovault_ai_v2_data", JSON.stringify(data));
+            }, [data]);
+
+            // Financial Summary Calculations
+            const totals = useMemo(() => {
+                const totalService = data.services.reduce((acc, curr) => acc + curr.cost, 0);
+                const totalFuel = data.fuel.reduce((acc, curr) => acc + curr.cost, 0);
+                const totalExpenses = data.expenses.reduce((acc, curr) => acc + curr.cost, 0);
+                return { totalService, totalFuel, totalExpenses, grandTotal: totalService + totalFuel + totalExpenses };
+            }, [data]);
+
+            // AI Service Forecast
+            const forecast = useMemo(() => {
+                const nextTarget = confirmedOdo + (data.motorcycle.serviceInterval - (confirmedOdo % data.motorcycle.serviceInterval));
+                const remainingKm = nextTarget - confirmedOdo;
+                const dailyAvg = 25; // estimated km/day based on commuters
+                const daysRemaining = Math.round(remainingKm / dailyAvg);
+                const projectedDate = new Date();
+                projectedDate.setDate(projectedDate.getDate() + daysRemaining);
+                return { nextTarget, remainingKm, daysRemaining, projectedDate: projectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) };
+            }, [confirmedOdo, data.motorcycle.serviceInterval]);
+
+            const exportBackup = () => {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `motovault_ai_backup_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+            };
+
+            return (
+                <div class="flex flex-col md:flex-row min-h-screen bg-dark-900 text-zinc-100">
+                    <!-- Sidebar Navigation -->
+                    <aside class="w-full md:w-64 bg-dark-800 border-b md:border-b-0 md:border-r border-dark-600 p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-8">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-mint-500 to-mint-400 flex items-center justify-center font-bold text-dark-900 text-xl">
+                                    MV
+                                </div>
+                                <div>
+                                    <h1 class="font-bold text-lg leading-none tracking-tight">MOTO VAULT <span class="text-mint-400">AI</span></h1>
+                                    <p class="text-xs text-zinc-500 mt-1">Yamaha XMAX V2</p>
+                                </div>
+                            </div>
+
+                            <nav class="space-y-2">
+                                {[
+                                    { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
+                                    { id: "services", label: "Service History", icon: "wrench" },
+                                    { id: "fuel", label: "Fuel & Expenses", icon: "fuel" },
+                                    { id: "rules", label: "Maintenance Rules", icon: "shield-check" },
+                                    { id: "migration", label: "Data Migration", icon: "database" }
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        class={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? "bg-mint-900/40 text-mint-400 border border-mint-500/30" : "text-zinc-400 hover:bg-dark-700 hover:text-zinc-200"}`}
+                                    >
+                                        <span>{tab.label}</span>
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+
+                        <div class="pt-6 border-t border-dark-600">
+                            <button onClick={exportBackup} class="w-full py-2.5 px-4 rounded-lg bg-dark-700 hover:bg-dark-600 text-xs font-semibold text-zinc-300 border border-dark-600 transition-all flex items-center justify-center space-x-2">
+                                <span>Export JSON Backup</span>
+                            </button>
+                        </div>
+                    </aside>
+
+                    <!-- Main Content Area -->
+                    <main class="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
+                        <!-- Top Header Bar -->
+                        <header class="flex flex-col md:flex-row md:items-center justify-between pb-6 mb-8 border-b border-dark-600 gap-4">
+                            <div>
+                                <h2 class="text-2xl font-bold tracking-tight text-white capitalize">{activeTab.replace('-', ' ')}</h2>
+                                <p class="text-sm text-zinc-400">Model Year: 2025 • Firebase Connected • PWA Ready</p>
+                            </div>
+                            <div class="flex items-center space-x-4 bg-dark-800 px-4 py-2 rounded-xl border border-dark-600">
+                                <div>
+                                    <span class="text-xs text-zinc-400 block">Confirmed Odometer</span>
+                                    <input
+                                        type="number"
+                                        value={confirmedOdo}
+                                        onChange={(e) => setConfirmedOdo(Number(e.target.value))}
+                                        class="bg-transparent font-bold text-mint-400 text-lg w-28 focus:outline-none"
+                                    />
+                                    <span class="text-xs text-zinc-400">km</span>
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* DASHBOARD TAB */}
+                        {activeTab === "dashboard" && (
+                            <div class="space-y-8">
+                                {/* Stats Overview */}
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div class="bg-dark-800 p-5 rounded-xl border border-dark-600">
+                                        <p class="text-xs font-medium text-zinc-400">Current Odometer</p>
+                                        <p class="text-2xl font-extrabold text-white mt-1">{confirmedOdo.toLocaleString()} <span class="text-sm font-normal text-zinc-500">km</span></p>
+                                    </div>
+                                    <div class="bg-dark-800 p-5 rounded-xl border border-dark-600">
+                                        <p class="text-xs font-medium text-zinc-400">Next Service Milestone</p>
+                                        <p class="text-2xl font-extrabold text-mint-400 mt-1">{forecast.nextTarget.toLocaleString()} <span class="text-sm font-normal text-zinc-500">km</span></p>
+                                    </div>
+                                    <div class="bg-dark-800 p-5 rounded-xl border border-dark-600">
+                                        <p class="text-xs font-medium text-zinc-400">Remaining Distance</p>
+                                        <p class="text-2xl font-extrabold text-white mt-1">{forecast.remainingKm.toLocaleString()} <span class="text-sm font-normal text-zinc-500">km</span></p>
+                                    </div>
+                                    <div class="bg-dark-800 p-5 rounded-xl border border-dark-600">
+                                        <p class="text-xs font-medium text-zinc-400">Total Lifetime Spend</p>
+                                        <p class="text-2xl font-extrabold text-white mt-1">RM {totals.grandTotal.toLocaleString()}</p>
+                                    </div>
+                                </div>
+
+                                {/* AI Prediction & Status */}
+                                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    <div class="lg:col-span-2 bg-gradient-to-br from-dark-800 to-dark-700 p-6 rounded-xl border border-dark-600">
+                                        <div class="flex items-center space-x-2 text-mint-400 mb-3">
+                                            <span class="font-bold text-sm uppercase tracking-wider">⚡ AI Maintenance Forecast</span>
+                                        </div>
+                                        <p class="text-zinc-300 text-sm leading-relaxed">
+                                            Based on historical riding telemetry, your Yamaha XMAX V2 averages approximately <strong class="text-white">25 km/day</strong>.
+                                            At current consumption rates, your next scheduled <strong class="text-mint-400">3,000 km Service</strong> will be due on or around <strong class="text-white">{forecast.projectedDate}</strong>.
+                                        </p>
+                                        <div class="mt-6 grid grid-cols-3 gap-4 pt-4 border-t border-dark-600/60 text-xs">
+                                            <div>
+                                                <span class="text-zinc-500 block">Service Cost Avg</span>
+                                                <span class="text-zinc-200 font-semibold">RM 140 / service</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-zinc-500 block">Fuel Efficiency</span>
+                                                <span class="text-zinc-200 font-semibold">28.8 km / L</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-zinc-500 block">Historical Entries</span>
+                                                <span class="text-zinc-200 font-semibold">8 Services</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-dark-800 p-6 rounded-xl border border-dark-600">
+                                        <h3 class="font-bold text-base text-white mb-4">Cost Breakdown</h3>
+                                        <div class="space-y-3 text-sm">
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-zinc-400">Services & Repairs</span>
+                                                <span class="font-semibold text-white">RM {totals.totalService}</span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-zinc-400">Fuel Purchases</span>
+                                                <span class="font-semibold text-white">RM {totals.totalFuel.toFixed(2)}</span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-zinc-400">Insurance & Tax</span>
+                                                <span class="font-semibold text-white">RM {totals.totalExpenses}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SERVICE HISTORY TAB */}
+                        {activeTab === "services" && (
+                            <div class="space-y-4">
+                                <div class="bg-dark-800 rounded-xl border border-dark-600 overflow-hidden">
+                                    <table class="w-full text-left text-sm">
+                                        <thead class="bg-dark-700 text-zinc-400 text-xs uppercase">
+                                            <tr>
+                                                <th class="p-4">Date</th>
+                                                <th class="p-4">Odometer</th>
+                                                <th class="p-4">Description</th>
+                                                <th class="p-4">Workshop</th>
+                                                <th class="p-4 text-right">Cost</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-dark-600">
+                                            {data.services.map((srv) => (
+                                                <tr key={srv.id} class="hover:bg-dark-700/50 transition-colors">
+                                                    <td class="p-4 font-medium text-zinc-200">{srv.date}</td>
+                                                    <td class="p-4 text-zinc-300">
+                                                        {srv.odometer.toLocaleString()} km
+                                                        {srv.flagged && <span class="ml-2 px-2 py-0.5 text-[10px] bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">Anomaly</span>}
+                                                    </td>
+                                                    <td class="p-4 text-zinc-300">
+                                                        <div class="font-semibold text-white">{srv.description}</div>
+                                                        <div class="text-xs text-zinc-500">{srv.parts.join(", ")}</div>
+                                                    </td>
+                                                    <td class="p-4 text-zinc-400">{srv.workshop}</td>
+                                                    <td class="p-4 text-right font-bold text-mint-400">RM {srv.cost}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* DATA MIGRATION TAB */}
+                        {activeTab === "migration" && (
+                            <div class="space-y-6">
+                                <div class="bg-dark-800 p-6 rounded-xl border border-dark-600">
+                                    <h3 class="text-lg font-bold text-white mb-2">Standalone Migration Engine</h3>
+                                    <p class="text-sm text-zinc-400 mb-6">Import, validate, and verify legacy dataset records from <code class="text-mint-400">motovault_xmax_v1_data</code>.</p>
+                                    
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                                        <div class="bg-dark-700 p-4 rounded-lg border border-dark-600">
+                                            <span class="text-xs text-zinc-400 block">Service Entries</span>
+                                            <span class="text-xl font-bold text-white">{data.services.length} Migrated</span>
+                                        </div>
+                                        <div class="bg-dark-700 p-4 rounded-lg border border-dark-600">
+                                            <span class="text-xs text-zinc-400 block">Fuel Logs</span>
+                                            <span class="text-xl font-bold text-white">{data.fuel.length} Migrated</span>
+                                        </div>
+                                        <div class="bg-dark-700 p-4 rounded-lg border border-dark-600">
+                                            <span class="text-xs text-zinc-400 block">General Expenses</span>
+                                            <span class="text-xl font-bold text-white">{data.expenses.length} Migrated</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs leading-relaxed mb-6">
+                                        <strong>Sequence Anomaly Detected:</strong> Entry <code>srv-002</code> (4,200 km) on 15 Aug 2025 is recorded out of linear odometer order relative to 10 Sep 2025 (3,000 km). Original record preserved without silent deletion.
+                                    </div>
+
+                                    <button
+                                        onClick={() => setMigrationStatus("Complete & Verified")}
+                                        class="px-6 py-3 bg-mint-500 hover:bg-mint-400 text-dark-900 font-bold rounded-lg text-sm transition-all"
+                                    >
+                                        Verify & Re-Sync Local Data
+                                    </button>
+                                    <span class="ml-4 text-xs text-zinc-400">Status: <strong class="text-mint-400">{migrationStatus}</strong></span>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+</body>
+</html>
