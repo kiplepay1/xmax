@@ -1,1 +1,1 @@
-# Moto Vault AI\n\nModern React + Tailwind application for Yamaha XMAX V2 maintenance tracking with migrated historical data.
+# Moto Vault AI\n\nComplete interactive maintenance & periodic service tracking for Yamaha XMAX V2.

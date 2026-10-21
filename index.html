@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOTO VAULT AI — Premium Motorcycle Intelligence</title>
+    <title>MOTO VAULT AI — Complete Motorcycle Intelligence</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -75,18 +75,18 @@
                 { id: "exp-003", date: "2026-03-10", category: "Accessories", description: "Phone Mount & Handlebar Grip", cost: 280 }
             ],
             rules: [
-                { part: "Engine Oil", intervalKm: 3000, intervalMonths: 4, lastDoneKm: 17183 },
-                { part: "Oil Filter", intervalKm: 6000, intervalMonths: 8, lastDoneKm: 17183 },
-                { part: "Gear Oil", intervalKm: 6000, intervalMonths: 6, lastDoneKm: 6000 },
-                { part: "Air Filter", intervalKm: 12000, intervalMonths: 12, lastDoneKm: 0 },
-                { part: "Spark Plug", intervalKm: 10000, intervalMonths: 12, lastDoneKm: 0 },
-                { part: "CVT Belt", intervalKm: 20000, intervalMonths: 24, lastDoneKm: 0 },
-                { part: "CVT Rollers", intervalKm: 12000, intervalMonths: 12, lastDoneKm: 0 },
-                { part: "Front Brake Pad", intervalKm: 10000, intervalMonths: 12, lastDoneKm: 13100 },
-                { part: "Rear Brake Pad", intervalKm: 8000, intervalMonths: 12, lastDoneKm: 0 },
-                { part: "Coolant", intervalKm: 12000, intervalMonths: 24, lastDoneKm: 0 },
-                { part: "Brake Fluid", intervalKm: 12000, intervalMonths: 24, lastDoneKm: 0 },
-                { part: "Tyres (Front/Rear)", intervalKm: 15000, intervalMonths: 24, lastDoneKm: 15000 }
+                { id: "rule-1", part: "Engine Oil", intervalKm: 3000, intervalMonths: 4, lastDoneKm: 17183 },
+                { id: "rule-2", part: "Oil Filter", intervalKm: 6000, intervalMonths: 8, lastDoneKm: 17183 },
+                { id: "rule-3", part: "Gear Oil", intervalKm: 6000, intervalMonths: 6, lastDoneKm: 6000 },
+                { id: "rule-4", part: "Air Filter", intervalKm: 12000, intervalMonths: 12, lastDoneKm: 0 },
+                { id: "rule-5", part: "Spark Plug", intervalKm: 10000, intervalMonths: 12, lastDoneKm: 0 },
+                { id: "rule-6", part: "CVT Belt", intervalKm: 20000, intervalMonths: 24, lastDoneKm: 0 },
+                { id: "rule-7", part: "CVT Rollers", intervalKm: 12000, intervalMonths: 12, lastDoneKm: 0 },
+                { id: "rule-8", part: "Front Brake Pad", intervalKm: 10000, intervalMonths: 12, lastDoneKm: 13100 },
+                { id: "rule-9", part: "Rear Brake Pad", intervalKm: 8000, intervalMonths: 12, lastDoneKm: 0 },
+                { id: "rule-10", part: "Coolant", intervalKm: 12000, intervalMonths: 24, lastDoneKm: 0 },
+                { id: "rule-11", part: "Brake Fluid", intervalKm: 12000, intervalMonths: 24, lastDoneKm: 0 },
+                { id: "rule-12", part: "Tyres (Front/Rear)", intervalKm: 15000, intervalMonths: 24, lastDoneKm: 15000 }
             ]
         };
 
@@ -97,7 +97,10 @@
                 return saved ? JSON.parse(saved) : LEGACY_DATA;
             });
             const [confirmedOdo, setConfirmedOdo] = useState(data.motorcycle.odometer);
-            const [migrationStatus, setMigrationStatus] = useState("Ready");
+            
+            // Modal states for adding new records
+            const [showServiceModal, setShowServiceModal] = useState(false);
+            const [newService, setNewService] = useState({ date: new Date().toISOString().split('T')[0], odometer: confirmedOdo, description: "", cost: "", parts: "", workshop: "" });
 
             useEffect(() => {
                 localStorage.setItem("motovault_ai_v2_data", JSON.stringify(data));
@@ -120,6 +123,23 @@
                 return { nextTarget, remainingKm, daysRemaining, projectedDate: projectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) };
             }, [confirmedOdo, data.motorcycle.serviceInterval]);
 
+            const handleAddService = (e) => {
+                e.preventDefault();
+                const item = {
+                    id: 'srv-' + Date.now(),
+                    date: newService.date,
+                    odometer: Number(newService.odometer),
+                    description: newService.description,
+                    cost: Number(newService.cost),
+                    parts: newService.parts ? newService.parts.split(',').map(s => s.trim()) : [],
+                    workshop: newService.workshop,
+                    flagged: false
+                };
+                setData(prev => ({ ...prev, services: [item, ...prev.services] }));
+                setShowServiceModal(false);
+                setNewService({ date: new Date().toISOString().split('T')[0], odometer: confirmedOdo, description: "", cost: "", parts: "", workshop: "" });
+            };
+
             const exportBackup = () => {
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
@@ -131,7 +151,7 @@
 
             return (
                 <div className="flex flex-col md:flex-row min-h-screen bg-dark-900 text-zinc-100">
-                    {/* Sidebar Navigation */}
+                    <!-- Sidebar Navigation -->
                     <aside className="w-full md:w-64 bg-dark-800 border-b md:border-b-0 md:border-r border-dark-600 p-6 flex flex-col justify-between">
                         <div>
                             <div className="flex items-center space-x-3 mb-8">
@@ -148,6 +168,8 @@
                                 {[
                                     { id: "dashboard", label: "Dashboard" },
                                     { id: "services", label: "Service History" },
+                                    { id: "rules", label: "Maintenance Rules" },
+                                    { id: "fuel", label: "Fuel & Expenses" },
                                     { id: "migration", label: "Data Migration" }
                                 ].map((tab) => (
                                     <button
@@ -161,23 +183,26 @@
                             </nav>
                         </div>
 
-                        <div className="pt-6 border-t border-dark-600">
-                            <button onClick={exportBackup} className="w-full py-2.5 px-4 rounded-lg bg-dark-700 hover:bg-dark-600 text-xs font-semibold text-zinc-300 border border-dark-600 transition-all flex items-center justify-center space-x-2">
+                        <div className="pt-6 border-t border-dark-600 space-y-3">
+                            <button onClick={() => setShowServiceModal(true)} className="w-full py-2.5 px-4 rounded-lg bg-mint-500 hover:bg-mint-400 text-xs font-bold text-dark-900 transition-all flex items-center justify-center space-x-2">
+                                <span>+ Add Service Record</span>
+                            </button>
+                            <button onClick={exportBackup} className="w-full py-2 px-4 rounded-lg bg-dark-700 hover:bg-dark-600 text-xs font-semibold text-zinc-300 border border-dark-600 transition-all flex items-center justify-center space-x-2">
                                 <span>Export JSON Backup</span>
                             </button>
                         </div>
                     </aside>
 
-                    {/* Main Content Area */}
+                    <!-- Main Content Area -->
                     <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
                         <header className="flex flex-col md:flex-row md:items-center justify-between pb-6 mb-8 border-b border-dark-600 gap-4">
                             <div>
                                 <h2 className="text-2xl font-bold tracking-tight text-white capitalize">{activeTab.replace('-', ' ')}</h2>
-                                <p className="text-sm text-zinc-400">Model Year: 2025 • Firebase Connected • PWA Ready</p>
+                                <p className="text-sm text-zinc-400">Model Year: 2025 • Interactive Maintenance Tracker</p>
                             </div>
                             <div className="flex items-center space-x-4 bg-dark-800 px-4 py-2 rounded-xl border border-dark-600">
                                 <div>
-                                    <span className="text-xs text-zinc-400 block">Confirmed Odometer</span>
+                                    <span className="text-xs text-zinc-400 block">Current Odometer</span>
                                     <input
                                         type="number"
                                         value={confirmedOdo}
@@ -189,6 +214,7 @@
                             </div>
                         </header>
 
+                        {/* DASHBOARD TAB */}
                         {activeTab === "dashboard" && (
                             <div className="space-y-8">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -242,15 +268,22 @@
                             </div>
                         )}
 
+                        {/* SERVICE HISTORY TAB */}
                         {activeTab === "services" && (
                             <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-bold text-white">All Service Records ({data.services.length})</h3>
+                                    <button onClick={() => setShowServiceModal(true)} className="px-4 py-2 bg-mint-500 text-dark-900 font-bold rounded-lg text-xs">
+                                        + Add Record
+                                    </button>
+                                </div>
                                 <div className="bg-dark-800 rounded-xl border border-dark-600 overflow-hidden">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-dark-700 text-zinc-400 text-xs uppercase">
                                             <tr>
                                                 <th className="p-4">Date</th>
                                                 <th className="p-4">Odometer</th>
-                                                <th className="p-4">Description</th>
+                                                <th className="p-4">Description & Parts</th>
                                                 <th className="p-4">Workshop</th>
                                                 <th className="p-4 text-right">Cost</th>
                                             </tr>
@@ -265,7 +298,7 @@
                                                     </td>
                                                     <td className="p-4 text-zinc-300">
                                                         <div className="font-semibold text-white">{srv.description}</div>
-                                                        <div className="text-xs text-zinc-500">{srv.parts.join(", ")}</div>
+                                                        <div className="text-xs text-zinc-500">{srv.parts && srv.parts.join(", ")}</div>
                                                     </td>
                                                     <td className="p-4 text-zinc-400">{srv.workshop}</td>
                                                     <td className="p-4 text-right font-bold text-mint-400">RM {srv.cost}</td>
@@ -277,12 +310,102 @@
                             </div>
                         )}
 
+                        {/* MAINTENANCE RULES TAB */}
+                        {activeTab === "rules" && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-white">Periodic Maintenance Intervals & Component Health</h3>
+                                <p className="text-sm text-zinc-400">Tracks remaining lifespan and interval status for all configured Yamaha XMAX V2 parts.</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {data.rules.map((rule) => {
+                                        const kmSince = confirmedOdo - rule.lastDoneKm;
+                                        const remaining = Math.max(0, rule.intervalKm - kmSince);
+                                        const pct = Math.min(100, Math.round((kmSince / rule.intervalKm) * 100));
+                                        const isDue = remaining === 0;
+                                        return (
+                                            <div key={rule.id} className="bg-dark-800 p-5 rounded-xl border border-dark-600 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <h4 className="font-bold text-white text-base">{rule.part}</h4>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${isDue ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-mint-900/40 text-mint-400 border border-mint-500/30'}`}>
+                                                            {isDue ? 'SERVICE DUE' : `${remaining.toLocaleString()} km left`}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-zinc-400 mb-4">Interval: Every {rule.intervalKm.toLocaleString()} km / {rule.intervalMonths} mos</p>
+                                                </div>
+                                                <div>
+                                                    <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                                                        <span>Last Done: {rule.lastDoneKm.toLocaleString()} km</span>
+                                                        <span>{pct}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-dark-700 h-2 rounded-full overflow-hidden">
+                                                        <div className={`h-full ${isDue ? 'bg-red-500' : 'bg-mint-400'}`} style={{ width: `${pct}%` }}></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* FUEL & EXPENSES TAB */}
+                        {activeTab === "fuel" && (
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold text-white">Fuel Efficiency & General Expenses</h3>
+                                <div className="bg-dark-800 rounded-xl border border-dark-600 overflow-hidden p-6">
+                                    <h4 className="font-semibold text-white mb-4">Fuel Logs ({data.fuel.length})</h4>
+                                    <table className="w-full text-left text-sm mb-6">
+                                        <thead className="bg-dark-700 text-zinc-400 text-xs uppercase">
+                                            <tr>
+                                                <th className="p-3">Date</th>
+                                                <th className="p-3">Odometer</th>
+                                                <th className="p-3">Litres</th>
+                                                <th className="p-3 text-right">Cost</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-dark-600">
+                                            {data.fuel.map((f) => (
+                                                <tr key={f.id}>
+                                                    <td className="p-3 text-zinc-200">{f.date}</td>
+                                                    <td className="p-3 text-zinc-300">{f.odometer.toLocaleString()} km</td>
+                                                    <td className="p-3 text-zinc-300">{f.liters} L</td>
+                                                    <td className="p-3 text-right font-bold text-mint-400">RM {f.cost.toFixed(2)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+
+                                    <h4 className="font-semibold text-white mb-4">General Expenses (Insurance, Road Tax, Accessories)</h4>
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-dark-700 text-zinc-400 text-xs uppercase">
+                                            <tr>
+                                                <th className="p-3">Date</th>
+                                                <th className="p-3">Category</th>
+                                                <th className="p-3">Description</th>
+                                                <th className="p-3 text-right">Cost</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-dark-600">
+                                            {data.expenses.map((e) => (
+                                                <tr key={e.id}>
+                                                    <td className="p-3 text-zinc-200">{e.date}</td>
+                                                    <td className="p-3 text-mint-400 font-semibold">{e.category}</td>
+                                                    <td className="p-3 text-zinc-300">{e.description}</td>
+                                                    <td className="p-3 text-right font-bold text-white">RM {e.cost}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MIGRATION TAB */}
                         {activeTab === "migration" && (
                             <div className="space-y-6">
                                 <div className="bg-dark-800 p-6 rounded-xl border border-dark-600">
                                     <h3 className="text-lg font-bold text-white mb-2">Standalone Migration Engine</h3>
-                                    <p className="text-sm text-zinc-400 mb-6">Import, validate, and verify legacy dataset records from <code className="text-mint-400">motovault_xmax_v1_data</code>.</p>
-                                    
+                                    <p className="text-sm text-zinc-400 mb-6">Imported from legacy source <code className="text-mint-400">motovault_xmax_v1_data</code>.</p>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                                         <div className="bg-dark-700 p-4 rounded-lg border border-dark-600">
                                             <span className="text-xs text-zinc-400 block">Service Entries</span>
@@ -297,22 +420,52 @@
                                             <span className="text-xl font-bold text-white">{data.expenses.length} Migrated</span>
                                         </div>
                                     </div>
-
-                                    <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs leading-relaxed mb-6">
-                                        <strong>Sequence Anomaly Detected:</strong> Entry <code>srv-002</code> (4,200 km) on 15 Aug 2025 is recorded out of linear odometer order relative to 10 Sep 2025 (3,000 km). Original record preserved without silent deletion.
-                                    </div>
-
-                                    <button
-                                        onClick={() => setMigrationStatus("Complete & Verified")}
-                                        className="px-6 py-3 bg-mint-500 hover:bg-mint-400 text-dark-900 font-bold rounded-lg text-sm transition-all"
-                                    >
-                                        Verify & Re-Sync Local Data
+                                    <button onClick={exportBackup} className="px-6 py-3 bg-mint-500 hover:bg-mint-400 text-dark-900 font-bold rounded-lg text-sm">
+                                        Download Complete JSON Backup
                                     </button>
-                                    <span className="ml-4 text-xs text-zinc-400">Status: <strong className="text-mint-400">{migrationStatus}</strong></span>
                                 </div>
                             </div>
                         )}
                     </main>
+
+                    {/* ADD SERVICE MODAL */}
+                    {showServiceModal && (
+                        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+                            <div className="bg-dark-800 border border-dark-600 rounded-xl p-6 max-w-md w-full space-y-4">
+                                <h3 className="text-lg font-bold text-white">Add New Service Record</h3>
+                                <form onSubmit={handleAddService} className="space-y-3">
+                                    <div>
+                                        <label className="text-xs text-zinc-400 block mb-1">Date</label>
+                                        <input type="date" value={newService.date} onChange={e => setNewService({...newService, date: e.target.value})} className="w-full bg-dark-700 border border-dark-600 rounded p-2 text-sm text-white" required />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-zinc-400 block mb-1">Odometer (km)</label>
+                                        <input type="number" value={newService.odometer} onChange={e => setNewService({...newService, odometer: e.target.value})} className="w-full bg-dark-700 border border-dark-600 rounded p-2 text-sm text-white" required />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-zinc-400 block mb-1">Description</label>
+                                        <input type="text" placeholder="e.g. Regular service & oil change" value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} className="w-full bg-dark-700 border border-dark-600 rounded p-2 text-sm text-white" required />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-zinc-400 block mb-1">Parts Replaced (comma separated)</label>
+                                        <input type="text" placeholder="Engine Oil, Oil Filter" value={newService.parts} onChange={e => setNewService({...newService, parts: e.target.value})} className="w-full bg-dark-700 border border-dark-600 rounded p-2 text-sm text-white" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-zinc-400 block mb-1">Workshop Name</label>
+                                        <input type="text" placeholder="Yamaha Service Center" value={newService.workshop} onChange={e => setNewService({...newService, workshop: e.target.value})} className="w-full bg-dark-700 border border-dark-600 rounded p-2 text-sm text-white" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-zinc-400 block mb-1">Cost (RM)</label>
+                                        <input type="number" step="0.01" placeholder="120" value={newService.cost} onChange={e => setNewService({...newService, cost: e.target.value})} className="w-full bg-dark-700 border border-dark-600 rounded p-2 text-sm text-white" required />
+                                    </div>
+                                    <div className="flex space-x-3 pt-4">
+                                        <button type="submit" className="flex-1 bg-mint-500 hover:bg-mint-400 text-dark-900 font-bold py-2 rounded text-sm">Save Record</button>
+                                        <button type="button" onClick={() => setShowServiceModal(false)} className="flex-1 bg-dark-700 hover:bg-dark-600 text-zinc-300 font-bold py-2 rounded text-sm">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
